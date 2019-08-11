@@ -22,4 +22,4 @@
     [INFO] Deleted 3600 messages
     ```
     You could also specify a `peer` argument, please see usage help for more infomation.
-    Don't forget to install [telethon](https://docs.telethon.dev/en/latest/) module for python 3 before you start.
+    Don't forget to install [telethon](https://docs.telethon.dev/en/latest/) module for python 3 and create your own [credentials](https://core.telegram.org/api/obtaining_api_id) before you start.
