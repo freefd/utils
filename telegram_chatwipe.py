@@ -3,6 +3,7 @@
 import time
 import argparse
 import datetime
+import pprint
 from typing import Any, List, Iterable, Dict, Union
 from telethon import TelegramClient, sync, types, functions
 from telethon.tl.functions.channels import DeleteMessagesRequest
@@ -11,8 +12,7 @@ from telethon.tl.types import InputMessagesFilterEmpty, InputPeerChannel, InputP
 
 def get_args() -> Dict:
     args_parser = argparse.ArgumentParser(description="Telegram's Chat History Remover")
-    args_parser.add_argument('--user', type=str, default=None, help='Telegram user name. Default: not set', required=True)
-    args_parser.add_argument('--phone', type=str, default=None, help='Registered phone number. Default: not set', required=True)
+    args_parser.add_argument('--phone', type=int, default=0, help='Registered phone number. Default: not set', required=True)
     args_parser.add_argument('--api-id', type=int, default=0, help='Telegram API ID. Default: not set', required=True)
     args_parser.add_argument('--api-hash', type=str, default=None, help='Telegram API Hash. Default: not set', required=True)
     args_parser.add_argument('--until', type=valid_date_type, default=None, help='Datetime in format "YYYY-MM-DD". Default: not set', required=True)
@@ -98,12 +98,14 @@ def get_messages(client, peer_id: Union[Channel], peer_hash: str,
             return messages
 
 def main(args) -> None:
-    if args.user != '' and args.api_id != 0 and args.api_hash != '' and args.phone != '':
-        client = TelegramClient(args.user, args.api_id, args.api_hash)
-        client.start(str('+')+args.phone)
-        
+    if args.api_id > 0 and args.api_hash != '' and args.phone > 0:
+        client = TelegramClient('chatwipe', args.api_id, args.api_hash)
+        client.start(str('+')+str(args.phone))
+
         peer = choose_peer(client, args.peer)
-        messages_found = get_messages(client, peer.id, peer.access_hash, args.until, args.user)
+        messages_found = get_messages(
+                    client, peer.id, peer.access_hash, args.until,
+                    client.get_me().username or client.get_me().first_name)
 
         if args.mode == 'delete' and len(messages_found) > 0:
             print("[WARN] Going to delete among {} messages".format(len(messages_found)))
