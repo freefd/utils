@@ -10,7 +10,7 @@
 
     Telegram script to `delete` or `list` your messages from specified chat until a provided date. The simple example how to run:
     ```
-    ~> ./telegram_chatwipe.py --user Username --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --until 1970-01-01 --mode delete
+    ~> ./telegram_chatwipe.py --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --until 1970-01-01 --mode delete
     1. chat1 (1012345678)
     2. chat2 (1087654321)
 
