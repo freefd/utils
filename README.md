@@ -23,3 +23,7 @@
     ```
     You could also specify a `peer` argument, please see usage help for more infomation.
     Don't forget to install [telethon](https://docs.telethon.dev/en/latest/) module for python 3 and create your own [credentials](https://core.telegram.org/api/obtaining_api_id) before you start.
+
+1. [telegram_graph.py](https://github.com/freefd/utils/blob/master/telegram_graph.py)
+
+    Python script to generate Plantuml graph from chats, channels and their common contacts in which you participate. Please read [article](https://ntwrk.today/2020/04/09/building-telegram-graph.html) for more information. 
