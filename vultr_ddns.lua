@@ -11,56 +11,78 @@
 -- libubus-lua
 -- json4lua
 
+require("os")
+require("socket")
+require("ltn12")
+require("ubus")
 
-recordName   = "homerouter"
-recordID     = 0
-domainName   = "domain.tld"
-domainList   = {}
-dnsRecords   = {}
-httpResponse = {}
-domainFound  = false                                                       
-recordAction = "create_record"
+json = require("json")
+https = require("ssl.https")
 
-requestHeaders = {                                                         
-        ["API-Key"] = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX", 
-        ["Content-Type"] = "application/json",                             
-} 
+apiKey         = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+recordName     = "homerouter"
+domainName     = "domain.tld"
+domainFound    = false
+requestMethod  = "POST"
+requestURI     = "https://api.vultr.com/v2/domains/" .. domainName .. "/records"
+recordTemplate = {
+    name = recordName,
+    data = "127.0.0.1",
+    type = "A",
+    ttl = "300",
+    priority = 0
+}
+requestHeaders = {
+    ["Authorization"] = "Bearer " .. apiKey,
+    ["Content-Type"] = "application/json",
+}
+
+remoteIP       = {}
+domainList     = {}
+dnsRecords     = {}
 
 function log(msg)
     os.execute("logger -t dyndns '" .. msg .. "'")
 end
 
-require ("os")
-require ("socket")
-require ("ltn12")                                                                                              
-require ("ubus")
+u = ubus.connect()
 
-json = require ("json")
-https = require ("ssl.https")
+if not u then
+    log("Ubus connect failed")
+    os.exit(1)
+end
 
-u = ubus.connect()                                                                                             
-                                                                                                               
-if not u then                                                                                                  
-    log('Ubus connect failed')                                                                                 
-    os.exit(1)                                                                                                 
-end                                                                                                            
+status = u:call("network.interface.wan", "status", {})
+wanIP = status["ipv4-address"][1]["address"]
 
-status = u:call("network.interface.wan", "status", {})                                                         
-wanIP = status["ipv4-address"][1]["address"]  
-
-success = https.request({
-    url = "https://api.vultr.com/v1/dns/list",
-    sink = ltn12.sink.table(domainList),
+remoteIPResponse = https.request({
+    url = "https://ifconfig.me/all.json",
+    sink = ltn12.sink.table(remoteIP),
     method = "GET",
     headers = requestHeaders,
 })
 
-if not success then
-    log('Failed to fetch domains list')
-    os.exit(1)	
+if remoteIPResponse then
+    local detectedIP = json.decode(remoteIP[1]).ip_addr
+    if remoteIP and wanIP ~= detectedIP  then
+        log("We are behind NAT: " .. wanIP .. " <-> " .. detectedIP )
+        wanIP = detectedIP
+    end
 end
 
-domainList = json.decode(domainList[1])
+apiResponse = https.request({
+    url = "https://api.vultr.com/v2/domains",
+    method = "GET",
+    headers = requestHeaders,
+    sink = ltn12.sink.table(domainList)
+})
+
+if not apiResponse then
+    log("Failed to fetch domains list")
+    os.exit(1)
+end
+
+domainList = json.decode(domainList[1]).domains
 
 for _, key in ipairs(domainList) do
     if key.domain == domainName then
@@ -69,58 +91,55 @@ for _, key in ipairs(domainList) do
     end
 end
 
-if not domainFound then       
-    log('Domain ' .. domainName .. ' has not been found')
-    os.exit(1)                   
-end
-
-success = https.request({
-    url = "https://api.vultr.com/v1/dns/records?domain=" .. domainName,
-    sink = ltn12.sink.table(dnsRecords),
-    method = "GET",
-    headers = requestHeaders
-})
-
-if not success then
-    log('Failed to fetch DNS records for ' .. domainName .. ' domain')
+if not domainFound then
+    log("Domain " .. domainName .. " has not been found")
     os.exit(1)
 end
 
-dnsRecords = json.decode(dnsRecords[1])
+apiResponse = https.request({
+    url = "https://api.vultr.com/v2/domains/" .. domainName .. "/records" ,
+    method = "GET",
+    headers = requestHeaders,
+    sink = ltn12.sink.table(dnsRecords)
+})
+
+if not apiResponse then
+    log("Failed to fetch DNS records for " .. domainName .. " domain")
+    os.exit(1)
+end
+
+dnsRecords = json.decode(dnsRecords[1]).records
 
 for _, record in ipairs(dnsRecords) do
     if record.name == recordName and record.data == wanIP then
-        log('Record update is not needed')                                                                           
-        os.exit(0)                                                                                             
+        log("Record update is not needed: " .. wanIP )
+        os.exit(0)
     elseif record.name == recordName then
-        recordAction = "update_record"
-        recordID = record.RECORDID
+        requestMethod = "PATCH"
+        requestURI = requestURI .. "/" .. record.id
+        recordTemplate["data"] = wanIP
         break
+    else
+        recordTemplate["data"] = wanIP
     end
 end
 
-if recordID > 0 then
-    recordRequest = 'domain=' .. domainName .. '&name=' .. recordName .. '&data=' .. wanIP .. '&RECORDID=' .. recordID .. '&type=A'
-else
-    recordRequest = 'domain=' .. domainName .. '&name=' .. recordName .. '&data=' .. wanIP .. '&type=A'
-end
+recordTemplate = json.encode(recordTemplate)
+requestHeaders["Content-Length"] = string.len(recordTemplate)
 
-requestHeaders["Content-Length"] = string.len(recordRequest)
-requestHeaders["Content-Type"]   = "application/x-www-form-urlencoded"
-status = https.request({
-    url = "https://api.vultr.com/v1/dns/" .. recordAction,
-    method = "POST",
+apiResponse = https.request({
+    url = requestURI,
+    method = requestMethod,
     headers = requestHeaders,
-    sink = ltn12.sink.table(httpResponse),
-    source = ltn12.source.string(recordRequest)
+    source = ltn12.source.string(recordTemplate)
 })
 
-if not status then
-    log('Failed to update record ' .. recordName .. '.' .. domainName .. ' [' .. wanIP .. ']')
+if not apiResponse then
+    log("Failed to update record " .. recordName .. "." .. domainName .. " [" .. wanIP .. "]")
 else
-    if recordAction == 'create_record' then
-        log('Created record ' .. recordName .. '.' .. domainName .. ' [' .. wanIP .. ']')
+    if requestMethod == "POST" then
+        log("Record has been created: " .. recordName .. "." .. domainName .. " [" .. wanIP .. "]")
     else
-        log('Updated record ' .. recordName .. '.' .. domainName .. ' [' .. wanIP .. ']')
+        log("Record has been updated: " .. recordName .. "." .. domainName .. " [" .. wanIP .. "]")
     end
 end
