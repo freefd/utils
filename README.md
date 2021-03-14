@@ -31,7 +31,7 @@
 
 1. [telegram_chats_intersection.py](https://github.com/freefd/utils/blob/master/telegram_chats_intersection.py)
     
-    Python script to get the intersection between pairs of Telegram chats you are participating. The simple example how to run it:
+    Python script to get the intersection between pairs of Telegram chats you participate or pass by `peers` argument. The simple example how to run it:
     ```
     ~> ./telegram_chats_intersection.py --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --verbose --showusers --peers 1012345678 1087654321
     INFO:root:Creating Telegram Client

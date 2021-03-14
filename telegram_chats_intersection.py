@@ -41,16 +41,16 @@ class Intersection:
     def parse_chats(self):
         # Create Telegram client
         client = self._create_client()
-
-        # Get all available known channels
-        channel_list = [dialog.entity for dialog in client.get_dialogs() if isinstance(dialog.entity, Channel)]
-        if self.verbose: logging.info(f'Collecting known chats')
+        channel_list = []
+        if self.verbose: logging.info(f'Collecting chats')
 
         # Check whether the specific peers were passed using arguments
         if self.peers is not None:
             flat_peers_list = [peer for sublist in self.peers for peer in sublist]
-            channel_list = [dialog.entity for dialog in client.get_dialogs()
-                if isinstance(dialog.entity, Channel) and dialog.entity.id in flat_peers_list]
+            for peer in flat_peers_list:
+                entity = client.get_entity(peer)
+                if isinstance(entity, Channel) and entity.megagroup:
+                    channel_list.append(entity)
         # Otherwise get all available channels 
         else:
             channel_list = [dialog.entity for dialog in client.get_dialogs()
