@@ -24,7 +24,7 @@ def valid_date_type(arg_date_str: str) -> datetime:
     try:
         return datetime.datetime.strptime(arg_date_str, "%Y-%m-%d")
     except ValueError:
-        msg = f'[ERROR] Given Date ({arg_date_str}) not valid. Expected format, YYYY-MM-DD'
+        msg = f'[ERROR] Given Date ({arg_date_str}) is not valid. Expected format: YYYY-MM-DD'
         raise argparse.ArgumentTypeError(msg)
 
 def message_chunks(l: List[Any], n: int) -> Iterable[Any]:
@@ -37,7 +37,6 @@ def choose_peer(client, peer_id) -> List[int]:
     dialogs = client.get_dialogs(limit=100)
 
     entities = [dialog.entity for dialog in dialogs if isinstance(dialog.entity, Channel)]
-    entities = [entity for entity in entities if entity.megagroup]
 
     if len(entities) == 0:
         print(f'[WARN] Cannot find user {client.get_me().username or client.get_me().first_name} ({client.get_me().id}) participation in any group')
