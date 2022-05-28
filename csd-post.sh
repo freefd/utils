@@ -1,8 +1,24 @@
 #!/usr/bin/env bash
 # Cisco Anyconnect CSD wrapper for OpenConnect
 # 
-# Based on https://gitlab.com/openconnect/openconnect/blob/master/trojans/csd-post.sh
 # This script is trying to be as honest as possible to mimic the official Cisco Anyconnect client.
+
+function valid_ip()
+{
+    local  ip=$1
+    local  stat=1
+
+    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
+        OIFS=$IFS
+        IFS='.'
+        ip=($ip)
+        IFS=$OIFS
+        [[ ${ip[0]} -le 255 && ${ip[1]} -le 255 \
+            && ${ip[2]} -le 255 && ${ip[3]} -le 255 ]]
+        stat=$?
+    fi
+    return $stat
+}
 
 if ! command -v xmlstarlet &>/dev/null; then
     echo "************************************************************************" >&2
@@ -21,11 +37,17 @@ hostName=$(hostname -s)
 declare -a tcp4Ports=($(${socketsUtil} -n4tl | awk '/[0-9]/{print $4}' | awk -F: '{print $2}' | sort -n | uniq))
 declare -a udp4Ports=($(${socketsUtil} -n4ul | awk '/[0-9]/{print $4}' | awk -F: '{print $2}' | sort -n | uniq))
 
-if command -v dig &>/dev/null; then
-    macAddress=$(cat /sys/class/net/$(ip route get $(dig -t A +short ${CSD_HOSTNAME}) | awk '/dev/{print $5}')/address)
-elif command -v nslookup &>/dev/null; then
-    macAddress=$(cat /sys/class/net/$(ip route get $(dig -t A +short ${CSD_HOSTNAME}) | awk '/dev/{print $5}')/address)
+if valid_ip ${CSD_HOSTNAME}; then
+    ipAddress=${CSD_HOSTNAME}
+else
+    if command -v dig &>/dev/null; then
+        ipAddress=$(dig -t A +short ${CSD_HOSTNAME})
+    elif command -v nslookup &>/dev/null; then
+        ipAddress=$(nslookup -type=A ${CSD_HOSTNAME} | awk '/^Address:/ {A=$2}; END {print A}')
+    fi
 fi
+
+macAddress=$(cat /sys/class/net/$(ip route get ${ipAddress} | awk '/dev/{print $5}')/address)
 
 if command -v dpkg-query &>/dev/null; then
     iptableVersion=$(dpkg-query -W -f "\${Version}" iptables | awk -F- '{print $1}')
@@ -61,8 +83,6 @@ endpoint.fw[\"IPTablesFW\"].enabled=\"failed\";
 "
 shift
 
-
-echo $payloadData
 requestTicket=
 requestStub=0
 
@@ -84,4 +104,6 @@ fi
 cookieHeader="Cookie: sdesktop=${requestToken}"
 contentHeader="Content-Type: text/xml"
 requestURI="https://${CSD_HOSTNAME}/+CSCOE+/sdesktop/scan.xml?reusebrowser=1"
-curl ${pinnedPubKey} -H "${contentHeader}" -H "${cookieHeader}" --data "${payloadData};type=text/xml" "${requestURI}"
+
+curl ${pinnedPubKey} -H "${contentHeader}" -H "${cookieHeader}" --data "${payloadData}type=text/xml" "${requestURI}"
+exit 0
