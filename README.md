@@ -68,3 +68,6 @@
     ```
     You could also do not specify `peers` argument, it will perform intersection across of available possible pair combinations for your chats. Please see usage help for more information.
     Do not forget to install [telethon](https://docs.telethon.dev/en/latest/) module for Python 3 and create your own [credentials](https://core.telegram.org/api/obtaining_api_id) before you start.
+1. [regry_ddns.lua](https://github.com/freefd/utils/blob/master/regru_ddns.lua)
+
+    The Lua script for REG.RU DNS that allows you to use it with OpenWrt or LEDE as dynamic DNS script due to lack of such functionality in native ddns-scripts (https://github.com/openwrt/packages/tree/master/net/ddns-scripts).
