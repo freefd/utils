@@ -1,4 +1,4 @@
-# A set of differents tools
+# A set of different tools
 
 1. [vultr_ddns.lua](https://github.com/freefd/utils/blob/master/vultr_ddns.lua)
 
