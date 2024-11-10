@@ -43,7 +43,7 @@ status = u:call("network.interface.wan", "status", {})
 wanIP = status["ipv4-address"][1].address
 
 remoteIPResponse = https.request({
-    url = "https://ident.me/all.json",
+    url = "https://ident.me/",
     sink = ltn12.sink.table(remoteIP),
     method = "GET",
 })
@@ -58,13 +58,17 @@ if remoteIPResponse then
     end
 end
 
-apiResponse = https.request({
-    url = 'https://api.reg.ru/api/regru2/zone/nop?input_data={"username":"' ..
-        apiUsername .. '","password":"' .. apiPassword .. '","domains":[{"dname":"' ..
-        domainName .. '"}],"output_content_type":"plain"}&input_format=json',
-    method = "GET",
-    sink = ltn12.sink.table(domainList)
-})
+apiRequestPayload = 'input_data={"domains":[{"dname":"' .. domainName .. '"}]}&input_format=json&username=' .. apiUsername .. '&password=' .. apiPassword
+apiResponse = https.request {
+    url = "https://api.reg.ru/api/regru2/zone/nop",
+    method = "POST",
+    sink = ltn12.sink.table(domainList),
+    source = ltn12.source.string(apiRequestPayload),
+    headers = {
+        ["content-length"] = #apiRequestPayload,
+        ["content-type"] = "application/x-www-form-urlencoded",
+    }
+}
 
 domainList = table.concat(domainList)
 
@@ -86,11 +90,14 @@ if not domainFound then
 end
 
 apiResponse = https.request({
-    url = 'https://api.reg.ru/api/regru2/zone/get_resource_records?input_data={"username":"' ..
-        apiUsername .. '","password":"' .. apiPassword .. '","domains":[{"dname":"' ..
-        domainName .. '"}],"output_content_type":"plain"}&input_format=json',
-    method = "GET",
-    sink = ltn12.sink.table(dnsRecords)
+    url = "https://api.reg.ru/api/regru2/zone/get_resource_records",
+    method = "POST",
+    sink = ltn12.sink.table(dnsRecords),
+    source = ltn12.source.string(apiRequestPayload),
+    headers = {
+        ["content-length"] = #apiRequestPayload,
+        ["content-type"] = "application/x-www-form-urlencoded",
+    }
 })
 
 if not apiResponse then
@@ -106,13 +113,18 @@ for _, record in ipairs(cjson.parse(dnsRecords).answer.domains[1].rrs) do
         os.exit(0)
     elseif record.subname == recordName then
         log("Record is required to be updated: " .. wanIP)
+        apiRequestPayload = 'input_data={"domains":[{"dname":"' .. domainName .. '"}],"subdomain":"' ..
+                            recordName .. '","record_type":"A"}&input_format=json&username=' ..
+                            apiUsername .. '&password=' .. apiPassword
         apiResponse = https.request({
-            url = 'https://api.reg.ru/api/regru2/zone/remove_record?input_data={"username":"' ..
-                apiUsername .. '","password":"' .. apiPassword ..
-                '","domains":[{"dname":"' .. domainName .. '"}],"subdomain":"' .. recordName ..
-                '","record_type":"A","output_content_type":"plain"}&input_format=json',
-            method = "GET",
-            sink = ltn12.sink.table(removeDnsRecord)
+            url = "https://api.reg.ru/api/regru2/zone/remove_record",
+            method = "POST",
+            sink = ltn12.sink.table(removeDnsRecord),
+            source = ltn12.source.string(apiRequestPayload),
+            headers = {
+                ["content-length"] = #apiRequestPayload,
+                ["content-type"] = "application/x-www-form-urlencoded",
+            }
         })
 
         local removeDnsRecord = table.concat(removeDnsRecord)
@@ -123,13 +135,18 @@ for _, record in ipairs(cjson.parse(dnsRecords).answer.domains[1].rrs) do
     end
 end
 
+apiRequestPayload = 'input_data={"domains":[{"dname":"' .. domainName .. '"}],"subdomain":"' ..
+                    recordName .. '","ipaddr":"' .. wanIP .. '"}&input_format=json&username=' ..
+                    apiUsername .. '&password=' .. apiPassword
 apiResponse = https.request({
-    url = 'https://api.reg.ru/api/regru2/zone/add_alias?input_data={"username":"' ..
-        apiUsername .. '","password":"' .. apiPassword ..
-        '","domains":[{"dname":"' .. domainName .. '"}],"subdomain":"' .. recordName ..
-        '","ipaddr":"' .. wanIP .. '","output_content_type":"plain"}&input_format=json',
-    method = "GET",
-    sink = ltn12.sink.table(addDnsRecord)
+    url = "https://api.reg.ru/api/regru2/zone/add_alias",
+    method = "POST",
+    sink = ltn12.sink.table(addDnsRecord),
+    source = ltn12.source.string(apiRequestPayload),
+    headers = {
+        ["content-length"] = #apiRequestPayload,
+        ["content-type"] = "application/x-www-form-urlencoded",
+    }
 })
 
 addDnsRecord = table.concat(addDnsRecord)

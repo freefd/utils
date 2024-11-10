@@ -75,4 +75,13 @@
 
 1. [regru_ddns.lua](https://github.com/freefd/utils/blob/master/regru_ddns.lua)
 
-    The Lua script for REG.RU DNS that allows you to use it with OpenWrt or LEDE as dynamic DNS script due to lack of such functionality in native ddns-scripts (https://github.com/openwrt/packages/tree/master/net/ddns-scripts).
+    The Lua script for REG.RU DNS that allows you to use it with OpenWrt as dynamic DNS script due to lack of such functionality in native ddns-scripts (https://github.com/openwrt/packages/tree/master/net/ddns-scripts).
+
+1. [regru_ddns.py](https://github.com/freefd/utils/blob/master/regru_ddns.py)
+
+    The Python script for REG.RU DNS that allows you to use it with OpenWrt hotplug.d or Linux NetworkManager-dispatcher. WAN interface must be set in `CONFIG.hook.wan_interface`.
+
+1. [RSSH.ps1](https://github.com/freefd/utils/blob/master/RSSH.ps1)
+
+    Powershell script to run SSH reverse tunneling to export RDP for a special environment purposes.
+    Please refer to [Windows RDP over reverse SSH tunneling](https://github.com/freefd/articles/blob/main/9_Windows_RDP_over_reverse_SSH_tunneling/README.md) article.
