@@ -10,19 +10,30 @@
 
     Python script to `delete` or `list` your messages from specified Telegram chat until a provided date. The simple example how to run it:
     ```
-    ~> ./telegram_chatwipe.py --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --until 1970-01-01 --mode delete
+    ~> ./telegram_chatwipe.py --phone 79123456789 --api-id 123456 --api-hash a622ddd7244a59b9c12be4e762a133df --since 1970-01-01 --mode delete
     0. [All Peers]
     1. chat1 (Peer 1012345678)
     2. chat2 (Peer 1087654321)
 
-    [INPUT] Choose chat: 1
+    [INPUT] Choose from the list: 1
     [INFO] Chosen: chat1
     [INFO] Getting messages from peer 1012345678 for user Username until the date 1970-01-01 00:00:00...
     [INFO] Received: 100 messages. Offset: 0.
-    [WARN] Going to delete among 3600 messages
-    [INFO] Deleted 3600 messages
+    [WARN] Going to delete among 100500 messages
+    [INFO] Deleted 100500 messages
     ```
-    You could also specify `peer` argument, please see usage help for more information.
+    The graphic explanation of the arguments `since` and `until`:
+    ```mermaid
+    timeline
+      title History Timeline
+      Older posts
+      Date A : since
+      ...
+      Date B : until
+      Newer posts
+    ```
+
+    You can also specify `peer` argument, please see usage help for more information.
     Do not forget to install [telethon](https://docs.telethon.dev/en/latest/) module for Python 3 and create your own [credentials](https://core.telegram.org/api/obtaining_api_id) before you start.
 
 1. [telegram_graph.py](https://github.com/freefd/utils/blob/master/telegram_graph.py)
