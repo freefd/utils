@@ -96,3 +96,56 @@
 
     Powershell script to run SSH reverse tunneling to export RDP for a special environment purposes.
     Please refer to [Windows RDP over reverse SSH tunneling](https://github.com/freefd/articles/blob/main/9_Windows_RDP_over_reverse_SSH_tunneling/README.md) article.
+
+1. [media_files_sort.sh](https://github.com/freefd/utils/blob/master/media_files_sort.sh)
+
+    Bash script to sort media files based on EXIF information or creation date from the current directory to the target directory in the format `BASEDIR/YYYY/MM/DD/YYYY-MM-DD_HHMMSS_XXHASH.EXTENSION`, where 
+    * `BASEDIR` - a static root path to the target directory
+    * `YYYY` .. `SS` - corresponding parts of date from file metadata, from the year up to seconds
+    * `XXHASH` - the result of producing [xxh32sum](https://xxhash.com/) from the given file to make some entropy suffix
+    * `EXTENSION` - preserved extension from the original file
+
+    Prerequisites:
+    * bash or dash
+    * exiftool
+    * jq
+    * date
+    * xxh32sum
+    * rsync
+
+    Non-unique files will have the same names, including the suffix from `xxh32sum` util, and will be overridden in the destination folder after an additional simple comparison.
+
+    Nevertheless, later you could use [fdupes](https://github.com/adrianlopezroche/fdupes), [rmlint](https://rmlint.readthedocs.io/), [rdfind](https://github.com/pauldreik/rdfind) or similar software to find and remove duplicates.
+
+    Script can recursively handle the following media types across the directories from the current: .JPG, .JPEG, .CRW, .THM, .RW2, .ARW, .AVI, .MOV, .MP4, .MPG, .3GP, .MTS, .PNG
+    Especially for video media (.MP4, MPG and MOV), the script [will adjust](https://exiftool.org/ExifTool.html#QuickTimeUTC) the filename according to the current timezone.
+
+    The script supports a few arguments:
+    ```shell
+    ~> bash media_files_sort.sh -h
+    usage: media_files_sort.sh options
+
+    OPTIONS:
+      -h      Show this message
+      -n      Run in Dry run Mode. Default: False
+      -b      Based directory for output sorted files. Default: /path/to/media/sorted
+      -d      Run in Debug Mode. Default: False
+    ```
+
+    There is a dry run mode available, so you can demo the results before doing the real work.
+    You can also override the built-in path `/path/to/media/sorted` with the `-b` argument, or by editing the value of `_defaultBaseDirectory` variable inside the script.
+
+    Dry run example:
+    ```shell
+    /p/t/m/i/directory> bash media_files_sort.sh -n -b /path/to/media/sorted_new
+    [2025-04-09 15:30:40] INFO: Running in Dry run mode
+    [2025-04-09 15:30:40] NOTICE: Intent to move '/path/to/media/incoming/directory/IMG_20221123_131543.jpg' to '/path/to/media/sorted_new/2022/11/23/2022-11-23_131543_b9be7a0d.jpg'
+    [2025-04-09 15:30:40] NOTICE: Intent to move '/path/to/media/incoming/directory/IMG_20211202_194347_451.jpg' to '/path/to/media/sorted_new/2021/12/02/2021-12-02_194346_d7fca074.jpg'
+    ... omitted for brevity ...
+    [2025-04-09 15:30:45] NOTICE: Intent to move '/path/to/media/incoming/directory/Pictures/Office Lens/2020_10_06 13_53 Office Lens.jpg' to '/path/to/media/sorted_new/2020/10/06/2020-10-06_135342_da9615a0.jpg'
+    [2025-04-09 15:30:45] NOTICE: Intent to move '/path/to/media/incoming/directory/Pictures/Office Lens/2020_12_11 21_30 Office Lens.jpg' to '/path/to/media/sorted_new/2020/12/11/2020-12-11_213026_00d0f2ac.jpg'
+    ... omitted for brevity ...
+    [2025-04-09 15:30:48] NOTICE: Intent to move '/path/to/media/incoming/directory/Videos/2_5454291518808396024.mp4' to '/path/to/media/sorted_new/2021/07/14/2021-07-14_160035_ca195681.mp4'
+    [2025-04-09 15:30:48] NOTICE: Intent to move '/path/to/media/incoming/directory/Videos/2_5278634035076139354.MOV' to '/path/to/media/sorted_new/2020/11/08/2020-11-08_231816_65e8a444.MOV'
+    ...
+    ```
